@@ -12,3 +12,7 @@ all the hosts in some network. NAT was devised to address the IPv4 address short
 # How Was Data Collected?
 
 `tcpdump` was run on OpenWRT devices deployed at various locations, chief among them WAN ports. This data consisted of packet headers, timestamps, etc. This data was collected using a Shell script deployed to these devices.
+
+# What is Our Model Architecture?
+
+`XGBoost` is a gradient boosting library whose strengths include flexibility, ability to understand nonlinear relationships between data, and performance. It is a part of `scikit-learn`.
