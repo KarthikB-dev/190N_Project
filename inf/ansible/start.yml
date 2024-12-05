@@ -1,0 +1,8 @@
+- name: Initialize router for experiment
+  hosts: router
+  become: true
+  tasks:
+    - name: start tcpdump
+      ansible.builtin.shell: "tcpdump -i any -w ~/tcp.pcap > ~/tcpdump.log 2>&1 &"
+      async: 2592000 # 30 days
+      poll: 0
