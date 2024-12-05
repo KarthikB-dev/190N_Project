@@ -1,0 +1,102 @@
+- name: Install openvpn
+  hosts: router
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Check if openvpn@bastion service exists
+      systemd:
+        name: openvpn@bastion
+        state: started  # Use `state: null` to avoid changing the state of the service
+        enabled: yes
+      register: service_status
+      ignore_errors: yes  # Do not stop even if the service is missing
+
+    - name: Determine if service exists
+      set_fact:
+        start_failed: "{{ service_status.failed == true }}"
+
+    - name: Install and start service
+      block:
+        - name: Wait for sudo
+          become: yes
+          shell:  while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
+          
+        - name: install packages
+          ansible.builtin.apt:
+            update_cache: yes
+            force_apt_get: yes
+            name:
+            - openvpn 
+            - easy-rsa
+        
+        - name: generate keys
+          ansible.builtin.shell: |
+            export EASYRSA_BATCH=1                  # Enables non-interactive mode
+            export EASYRSA_REQ_CN="GATE"            # Common Name (CN) for the CA
+            export EASYRSA_REQ_COUNTRY="US"         # Country
+            export EASYRSA_REQ_PROVINCE="CA"        # Province or State
+            export EASYRSA_REQ_CITY="SantaBarbara"  # City
+            export EASYRSA_REQ_ORG="UCSB"           # Organization
+            export EASYRSA_REQ_EMAIL="fake@ucsb.edu"# Email address
+            export EASYRSA_REQ_OU="GATE"              # Organizational Unit
+            make-cadir /etc/openvpn/easy-rsa
+            cd /etc/openvpn/easy-rsa
+            ./easyrsa init-pki
+            ./easyrsa build-ca nopass
+            ./easyrsa gen-req bastion nopass
+            ./easyrsa gen-dh
+            ./easyrsa sign-req server bastion
+            cp pki/dh.pem pki/ca.crt pki/issued/bastion.crt pki/private/bastion.key /etc/openvpn/
+            ./easyrsa gen-req client1 nopass
+            ./easyrsa sign-req client client1
+            cd /etc/openvpn
+            openvpn --genkey secret ta.key
+
+        - name: Upload config
+          ansible.builtin.template:
+            src: files/openvpn/bastion.conf
+            dest: /etc/openvpn/bastion.conf
+
+        - name: Start and enable openvpn
+          systemd:
+            name: openvpn@bastion
+            state: started
+            enabled: yes
+      when: start_failed
+
+    - name: Enable IP forwarding
+      ansible.builtin.sysctl:
+        name: net.ipv4.ip_forward
+        value: 1
+        state: present
+        reload: yes
+
+    - name: prepare ovpn files
+      ansible.builtin.shell: |
+        mkdir -p /home/ubuntu/ovpn
+        cp /etc/openvpn/ca.crt /home/ubuntu/ovpn/
+        cp /etc/openvpn/ta.key /home/ubuntu/ovpn/
+        cp /etc/openvpn/easy-rsa/pki/issued/client1.crt /home/ubuntu/ovpn/
+        cp /etc/openvpn/easy-rsa/pki/private/client1.key /home/ubuntu/ovpn/
+        chmod 555 /home/ubuntu/ovpn/*
+
+    - name: Download them
+      ansible.builtin.fetch:
+        src: /home/ubuntu/ovpn/{{item}}
+        dest: "files/vpn/{{item}}"
+        flat: yes
+      with_items:
+        - ca.crt
+        - ta.key
+        - client1.crt
+        - client1.key
+
+- name: Generate client config
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Generate client config
+      ansible.builtin.template:
+        src: files/openvpn/client.conf
+        dest: files/vpn/client.conf

@@ -230,10 +230,11 @@ iptables -A FORWARD -i $LAN_INTERFACE -o $WAN_INTERFACE -j ACCEPT
 iptables -A FORWARD -i $WAN_INTERFACE -o $LAN_INTERFACE -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 # Save iptables rules to make them persistent
-echo "Installing iptables-persistent..."
-apt-get update && apt-get install -y iptables-persistent
-netfilter-persistent save
-netfilter-persistent reload
+# echo "Installing iptables-persistent..."
+# apt-get update && apt-get install -y iptables-persistent
+# echo "APT finished"
+# netfilter-persistent save
+# netfilter-persistent reload
 
 echo "NAT configuration complete."
 EOF
@@ -321,6 +322,6 @@ resource "local_file" "ssh_config" {
 }
 
 resource "local_file" "inventory" {
-  content  = "${local.inventory_header}\n\n${local.inventory_static}\n${local.inventory_workstations}\n\n${local.windows_inventory}"
+  content  = "${local.inventory_header}\n\n[static]\n${local.inventory_static}\n${local.inventory_workstations}\n\n${local.windows_inventory}"
   filename = "190n-inf-key/inventory.ini"
 }
