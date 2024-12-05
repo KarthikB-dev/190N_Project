@@ -89,6 +89,21 @@ resource "aws_route_table_association" "router-subnet-rt-association" {
   subnet_id      = aws_subnet.router_wan_subnet.id
 }
 
+resource "aws_route_table" "router-lan-subnet-rt" {
+  vpc_id = aws_vpc.main_vpc.id
+  route {
+    cidr_block           = "0.0.0.0/0"
+    network_interface_id = aws_network_interface.router_lan.id
+  }
+  tags = {
+    Name = "190n-router-lan-subnet-rt"
+  }
+}
+
+resource "aws_route_table_association" "router-lan-subnet-rt-association" {
+  route_table_id = aws_route_table.router-lan-subnet-rt.id
+  subnet_id      = aws_subnet.router_lan_subnet.id
+}
 resource "aws_security_group" "router_wan_sg" {
   vpc_id = aws_vpc.upstream_vpc.id
   ingress {
@@ -147,8 +162,8 @@ resource "aws_instance" "router_instance" {
   ]
   ami = "ami-08116b9957a259459" # pinned ubuntu version 22.04
   # ami                         = "ami-0da657e96a9bfab37" # esperanza router AMI (built with Packer)
-  instance_type     = "t3.micro"
-  key_name          = aws_key_pair.key_pair.key_name
+  instance_type = "t3.micro"
+  key_name      = aws_key_pair.key_pair.key_name
 
   network_interface {
     network_interface_id = aws_network_interface.router_wan.id
@@ -172,8 +187,8 @@ sysctl -w net.ipv4.ip_forward=1
 echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 
 # Configure iptables for NAT (Replace eth0 and eth1 with actual interface names)
-WAN_INTERFACE="eth0"
-LAN_INTERFACE="eth1"
+WAN_INTERFACE="ens5"
+LAN_INTERFACE="ens6"
 
 echo "Setting up iptables for NAT..."
 iptables -t nat -A POSTROUTING -o $WAN_INTERFACE -j MASQUERADE
@@ -191,15 +206,17 @@ EOF
 }
 
 resource "aws_network_interface" "router_wan" {
-  subnet_id       = aws_subnet.router_wan_subnet.id
-  private_ips     = ["10.154.0.50"]
-  security_groups = [aws_security_group.router_wan_sg.id]
+  subnet_id         = aws_subnet.router_wan_subnet.id
+  private_ips       = ["10.154.0.50"]
+  security_groups   = [aws_security_group.router_wan_sg.id]
+  source_dest_check = false
 }
 
 resource "aws_network_interface" "router_lan" {
-  subnet_id       = aws_subnet.router_lan_subnet.id
-  private_ips     = ["10.114.0.50"]
-  security_groups = [aws_security_group.router_lan_sg.id]
+  subnet_id         = aws_subnet.router_lan_subnet.id
+  private_ips       = ["10.114.0.50"]
+  security_groups   = [aws_security_group.router_lan_sg.id]
+  source_dest_check = false
 }
 
 resource "aws_eip" "public_ip" {
@@ -212,4 +229,56 @@ resource "aws_eip" "public_ip" {
 resource "aws_eip_association" "public_ip_wan" {
   allocation_id        = aws_eip.public_ip.id
   network_interface_id = aws_network_interface.router_wan.id
+}
+
+module "workstations" {
+  depends_on = [aws_instance.router_instance]
+  source     = "./workstations"
+  instances = {
+    "ubuntu1" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.0.61"
+    }
+    "ubuntu2" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.0.62"
+    }
+    "ubuntu3" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.0.63"
+    }
+  }
+  vpc_id        = aws_vpc.main_vpc.id
+  vpc_name      = "190n-main"
+  vpc_cidr      = "10.114.0.0/16"
+  ssh_key_name  = aws_key_pair.key_pair.key_name
+  router_nic_id = aws_network_interface.router_lan.id
+  subnet_id     = aws_subnet.router_lan_subnet.id
+}
+
+
+module "windowsHosts" {
+  depends_on = [aws_instance.router_instance]
+  source     = "./winserver"
+  instances = {
+    "winserver1" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.1.61"
+    }
+    "winserver2" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.1.62"
+    }
+    "winserver3" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.1.63"
+    }
+  }
+  vpc_id          = aws_vpc.main_vpc.id
+  vpc_name        = "190n-main"
+  vpc_cidr        = "10.114.0.0/16"
+  ssh_key_name    = aws_key_pair.key_pair.key_name
+  router_nic_id   = aws_network_interface.router_lan.id
+  subnet_id       = aws_subnet.router_lan_subnet.id
+  tls_private_key = tls_private_key.rsa_key.private_key_pem
 }
