@@ -1,0 +1,9 @@
+Host *
+   StrictHostKeyChecking no
+   UserKnownHostsFile=/dev/null
+   User ubuntu
+   # You can also use a local hosts file!
+
+Host router ${ip}
+   HostName ${ip}
+   IdentityFile ./${keyfile}

@@ -7,6 +7,40 @@ terraform {
   }
 }
 
+variable "linux_instances" {
+  default = {
+    "ubuntu1" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.0.61"
+    }
+    "ubuntu2" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.0.62"
+    }
+    "ubuntu3" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.0.63"
+    }
+  }
+}
+
+variable "windows_instances" {
+  default = {
+    "winserver1" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.1.61"
+    }
+    "winserver2" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.1.62"
+    }
+    "winserver3" = {
+      cidr = "10.114.0.0/16",
+      ip   = "10.114.1.63"
+    }
+  }
+}
+
 provider "aws" {
   region = "us-west-2"
 }
@@ -232,22 +266,9 @@ resource "aws_eip_association" "public_ip_wan" {
 }
 
 module "workstations" {
-  depends_on = [aws_instance.router_instance]
-  source     = "./workstations"
-  instances = {
-    "ubuntu1" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.0.61"
-    }
-    "ubuntu2" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.0.62"
-    }
-    "ubuntu3" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.0.63"
-    }
-  }
+  depends_on    = [aws_instance.router_instance]
+  source        = "./workstations"
+  instances     = var.linux_instances
   vpc_id        = aws_vpc.main_vpc.id
   vpc_name      = "190n-main"
   vpc_cidr      = "10.114.0.0/16"
@@ -258,22 +279,9 @@ module "workstations" {
 
 
 module "windowsHosts" {
-  depends_on = [aws_instance.router_instance]
-  source     = "./winserver"
-  instances = {
-    "winserver1" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.1.61"
-    }
-    "winserver2" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.1.62"
-    }
-    "winserver3" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.1.63"
-    }
-  }
+  depends_on      = [aws_instance.router_instance]
+  source          = "./winserver"
+  instances       = var.windows_instances
   vpc_id          = aws_vpc.main_vpc.id
   vpc_name        = "190n-main"
   vpc_cidr        = "10.114.0.0/16"
@@ -281,4 +289,38 @@ module "windowsHosts" {
   router_nic_id   = aws_network_interface.router_lan.id
   subnet_id       = aws_subnet.router_lan_subnet.id
   tls_private_key = tls_private_key.rsa_key.private_key_pem
+}
+
+locals {
+  ssh_conf_header = templatefile("templates/ssh_config_header", {
+    host    = "bastion",
+    ip      = aws_instance.router_instance.public_ip,
+    keyfile = "190n-inf-key/id_rsa"
+  })
+  ssh_conf_item = join("\n", [for key, value in var.linux_instances : templatefile("templates/ssh_config_item", {
+    host    = key,
+    ip      = value.ip,
+    keyfile = "190n-inf-key/id_rsa"
+    bastion = aws_instance.router_instance.public_ip
+  })])
+  inventory_header = templatefile("templates/inventory_header", {
+    ip = aws_instance.router_instance.public_ip
+  })
+  inventory_static       = "router ansible_host=router ansible_user=ubuntu\n\n"
+  inventory_workstations = join("\n", [for key, value in var.linux_instances : "${key} ansible_host=${key} ansible_user=ubuntu"])
+  windows_inventory = join("\n", [for key, value in var.windows_instances : templatefile("templates/inventory_windows", {
+    host     = key,
+    ip       = value.ip,
+    password = module.windowsHosts.winserver22_passwords[key]
+  })])
+}
+
+resource "local_file" "ssh_config" {
+  content  = "${local.ssh_conf_header}\n\n${local.ssh_conf_item}"
+  filename = "190n-inf-key/ssh_config"
+}
+
+resource "local_file" "inventory" {
+  content  = "${local.inventory_header}\n\n${local.inventory_static}\n${local.inventory_workstations}\n\n${local.windows_inventory}"
+  filename = "190n-inf-key/inventory.ini"
 }
