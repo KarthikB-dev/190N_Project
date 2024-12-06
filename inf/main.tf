@@ -150,8 +150,24 @@ resource "aws_security_group" "router_wan_sg" {
 
   ingress {
     description = "Allow ingress for ssh"
-    from_port   = 0
+    from_port   = 22
     to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow ingress for openvpn"
+    from_port   = 1194
+    to_port     = 1194
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow ingress for guacamole"
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -308,7 +324,7 @@ locals {
     ip = aws_instance.router_instance.public_ip
   })
   inventory_static       = "router ansible_host=router ansible_user=ubuntu\n\n"
-  inventory_workstations = join("\n", [for key, value in var.linux_instances : "${key} ansible_host=${key} ansible_user=ubuntu"])
+  inventory_workstations = join("\n", [for key, value in var.linux_instances : "${key} ansible_host=${var.linux_instances[key].ip} ansible_user=ubuntu"])
   windows_inventory = join("\n", [for key, value in var.windows_instances : templatefile("templates/inventory_windows", {
     host     = key,
     ip       = value.ip,
@@ -322,6 +338,6 @@ resource "local_file" "ssh_config" {
 }
 
 resource "local_file" "inventory" {
-  content  = "${local.inventory_header}\n\n[static]\n${local.inventory_static}\n${local.inventory_workstations}\n\n${local.windows_inventory}"
+  content  = "${local.inventory_header}\n\n[static]\n${local.inventory_static}\n[linux]\n${local.inventory_workstations}\n\n[win]\n${local.windows_inventory}"
   filename = "190n-inf-key/inventory.ini"
 }
