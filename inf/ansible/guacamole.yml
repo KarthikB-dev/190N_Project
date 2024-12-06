@@ -65,3 +65,7 @@
       ansible.builtin.shell: |
         python3 /opt/guacamole/addhosts.py ssh "{{hostvars[item]['ansible_host']}}" "{{pk}}"
       with_items: "{{ groups['linux'] }}"
+
+    - name: Change password for guacamole
+      ansible.builtin.shell: |
+        python3 /opt/guacamole/changepwd.py "guacadmin" "uc5b-c5igon"

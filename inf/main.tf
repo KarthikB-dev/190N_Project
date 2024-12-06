@@ -10,15 +10,15 @@ terraform {
 variable "linux_instances" {
   default = {
     "ubuntu1" = {
-      cidr = "10.114.0.0/16",
+      cidr = "10.114.0.0/24",
       ip   = "10.114.0.61"
     }
     "ubuntu2" = {
-      cidr = "10.114.0.0/16",
+      cidr = "10.114.0.0/24",
       ip   = "10.114.0.62"
     }
     "ubuntu3" = {
-      cidr = "10.114.0.0/16",
+      cidr = "10.114.0.0/24",
       ip   = "10.114.0.63"
     }
   }
@@ -27,16 +27,16 @@ variable "linux_instances" {
 variable "windows_instances" {
   default = {
     "winserver1" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.1.61"
+      cidr = "10.114.0.0/24",
+      ip   = "10.114.0.71"
     }
     "winserver2" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.1.62"
+      cidr = "10.114.0.0/24",
+      ip   = "10.114.0.72"
     }
     "winserver3" = {
-      cidr = "10.114.0.0/16",
-      ip   = "10.114.1.63"
+      cidr = "10.114.0.0/24",
+      ip   = "10.114.0.73"
     }
   }
 }
@@ -104,7 +104,7 @@ resource "local_file" "private_key" {
 resource "aws_subnet" "router_lan_subnet" {
   availability_zone = data.aws_availability_zones.available.names[0]
   vpc_id            = aws_vpc.main_vpc.id
-  cidr_block        = "10.114.0.0/16"
+  cidr_block        = "10.114.0.0/24"
   tags = {
     Name = "190n-router-lan-subnet"
   }
@@ -116,6 +116,15 @@ resource "aws_subnet" "router_wan_subnet" {
   cidr_block        = "10.154.0.0/16"
   tags = {
     Name = "190n-router-wan-subnet"
+  }
+}
+
+resource "aws_subnet" "router_vpn_subnet" {
+  availability_zone = data.aws_availability_zones.available.names[0]
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = "10.114.100.0/24"
+  tags = {
+    Name = "190n-router-vpn-subnet"
   }
 }
 
@@ -137,6 +146,11 @@ resource "aws_route_table_association" "router-subnet-rt-association" {
 
 resource "aws_route_table" "router-lan-subnet-rt" {
   vpc_id = aws_vpc.main_vpc.id
+
+  route {
+    cidr_block           = "10.114.100.0/24"
+    network_interface_id = aws_network_interface.router_lan.id
+  }
   route {
     cidr_block           = "0.0.0.0/0"
     network_interface_id = aws_network_interface.router_lan.id
@@ -150,6 +164,7 @@ resource "aws_route_table_association" "router-lan-subnet-rt-association" {
   route_table_id = aws_route_table.router-lan-subnet-rt.id
   subnet_id      = aws_subnet.router_lan_subnet.id
 }
+
 resource "aws_security_group" "router_wan_sg" {
   vpc_id = aws_vpc.upstream_vpc.id
   ingress {
@@ -226,6 +241,10 @@ resource "aws_instance" "router_instance" {
   # ami                         = "ami-0da657e96a9bfab37" # esperanza router AMI (built with Packer)
   instance_type = "t3.micro"
   key_name      = aws_key_pair.key_pair.key_name
+
+  root_block_device {
+    volume_size = 20 # changed from 8GB to 20GB for docker images
+  }
 
   network_interface {
     network_interface_id = aws_network_interface.router_wan.id

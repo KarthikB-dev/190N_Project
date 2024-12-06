@@ -1,7 +1,10 @@
+sudo -v
+
 ansible-playbook -i ./190n-inf-key/inventory.ini ./ansible/guacamole.yml
 
 ansible-playbook -i ./190n-inf-key/inventory.ini ./ansible/vpn.yml
 
+sudo -v
 cd ansible/files/vpn
 
 # Run openvpn in background
