@@ -13,11 +13,11 @@ services:
       - './db-data:/var/lib/mysql'
   guacd:
     container_name: guacd
-    image: guacamole/guacd:1.4.0
+    image: guacamole/guacd:1.5.5
     restart: unless-stopped
   guacamole:
     container_name: guacamole
-    image: guacamole/guacamole:1.4.0
+    image: guacamole/guacamole:1.5.5
     restart: unless-stopped
     ports:
       - 8080:8080

@@ -102,6 +102,75 @@
         state: started
         enabled: yes
 
+- name: will wait till reachable
+  hosts: win
+  gather_facts: no # important
+  tasks:
+    - name: Wait for system to become reachable
+      wait_for_connection:
+
+    - name: Gather facts for the first time
+      setup:
+
+- name: Initialize all Windows hosts
+  gather_facts: false
+  hosts: win
+  tasks:
+    - name: Create a non-admin user
+      win_user:
+        name: user
+        password: "{{ ansible_password }}"
+        password_never_expires: yes
+        state: present
+  
+    - name: Add user to Remote Management Users group
+      ansible.windows.win_group_membership:
+        name: 'Remote Management Users'
+        members:
+          - 'user'  # Replace with the actual username
+        state: present
+
+    - name: Allow logon as a service
+      ansible.windows.win_user_right:
+        users: user
+        name: SeServiceLogonRight
+
+    # Converted from: https://community.spiceworks.com/t/configure-winrm-over-https-on-multiple-computers-with-powershell/772302
+    # Search keywords: windows set winrm sddl using command line
+    # https://serverfault.com/questions/993482/enable-winrm-for-domain-user
+    - name: Set WinRM permissions for the user
+      ansible.windows.win_shell: |
+        $GENERIC_READ = 0x80000000
+        $GENERIC_WRITE = 0x40000000
+        $GENERIC_EXECUTE = 0x20000000
+        $GENERIC_ALL = 0x10000000
+
+        # Get the SID of the Remote Management Users group
+        $group_sid = (New-Object -TypeName System.Security.Principal.NTAccount -ArgumentList "Remote Management Users").Translate([System.Security.Principal.SecurityIdentifier])
+
+        # Get the existing SDDL for the WinRM service
+        $sddl = (Get-Item -Path WSMan:\localhost\Service\RootSDDL).Value
+
+        # Convert the SDDL to a SecurityDescriptor object
+        $sd = New-Object -TypeName System.Security.AccessControl.CommonSecurityDescriptor -ArgumentList $false, $false, $sddl
+
+        # Apply a new DACL to allow generic read and execute permissions for the group
+        $sd.DiscretionaryAcl.AddAccess(
+        [System.Security.AccessControl.AccessControlType]::Allow,
+        $group_sid,
+        ($GENERIC_READ -bor $GENERIC_EXECUTE -bor $GENERIC_ALL),
+        [System.Security.AccessControl.InheritanceFlags]::None,
+        [System.Security.AccessControl.PropagationFlags]::None
+        )
+
+        # Get the new SDDL from the SecurityDescriptor object
+        $new_sddl = $sd.GetSddlForm([System.Security.AccessControl.AccessControlSections]::All)
+
+        # Apply the updated SDDL to the WinRM listener
+        Set-Item -Path WSMan:\localhost\Service\RootSDDL -Value $new_sddl -Force
+      args:
+        executable: powershell
+
 - name: Configure CMU Ghosts on Windows
   hosts: win
   gather_facts: false
