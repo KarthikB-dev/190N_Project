@@ -78,14 +78,26 @@ resource "tls_private_key" "rsa_key" {
   rsa_bits  = 4096
 }
 
-resource "aws_key_pair" "key_pair" {
-  key_name   = "190n-inf-key"
+resource "aws_key_pair" "rsa_key_pair" {
+  key_name   = "190n-inf-rsa-key"
   public_key = tls_private_key.rsa_key.public_key_openssh
 }
 
+
+
+resource "tls_private_key" "ed25519" {
+  algorithm = "ED25519"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "key_pair" {
+  key_name   = "190n-inf-key"
+  public_key = tls_private_key.ed25519.public_key_openssh
+}
+
 resource "local_file" "private_key" {
-  content         = tls_private_key.rsa_key.private_key_pem
-  filename        = "190n-inf-key/id_rsa"
+  content         = tls_private_key.ed25519.private_key_openssh
+  filename        = "190n-inf-key/id_ed25519"
   file_permission = 0600
 }
 
@@ -302,7 +314,7 @@ module "windowsHosts" {
   vpc_id          = aws_vpc.main_vpc.id
   vpc_name        = "190n-main"
   vpc_cidr        = "10.114.0.0/16"
-  ssh_key_name    = aws_key_pair.key_pair.key_name
+  ssh_key_name    = aws_key_pair.rsa_key_pair.key_name
   router_nic_id   = aws_network_interface.router_lan.id
   subnet_id       = aws_subnet.router_lan_subnet.id
   tls_private_key = tls_private_key.rsa_key.private_key_pem
@@ -312,12 +324,12 @@ locals {
   ssh_conf_header = templatefile("templates/ssh_config_header", {
     host    = "bastion",
     ip      = aws_instance.router_instance.public_ip,
-    keyfile = "190n-inf-key/id_rsa"
+    keyfile = "190n-inf-key/id_ed25519"
   })
   ssh_conf_item = join("\n", [for key, value in var.linux_instances : templatefile("templates/ssh_config_item", {
     host    = key,
     ip      = value.ip,
-    keyfile = "190n-inf-key/id_rsa"
+    keyfile = "190n-inf-key/id_ed25519"
     bastion = aws_instance.router_instance.public_ip
   })])
   inventory_header = templatefile("templates/inventory_header", {

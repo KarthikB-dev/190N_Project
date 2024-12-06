@@ -41,7 +41,7 @@
   gather_facts: true
   become: true
   vars:
-    pk: "{{ lookup('file', playbook_dir + '/../190n-inf-key/id_rsa') }}"
+    pk: "{{ lookup('file', playbook_dir + '/../190n-inf-key/id_ed25519') }}"
   tasks:
     - name: Upload guacamole files
       ansible.builtin.copy:

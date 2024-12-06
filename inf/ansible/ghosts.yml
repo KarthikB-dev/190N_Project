@@ -1,0 +1,201 @@
+- name: Install ghosts
+  hosts: linux
+  gather_facts: true
+  become: true
+  tasks:
+    - name: install packages
+      ansible.builtin.apt:
+        update_cache: yes
+        name:
+        - unzip
+        - aspnetcore-runtime-8.0
+        - gconf-service
+        - libasound2
+        - libatk1.0-0
+        - libc6
+        - libcairo2
+        - libcups2
+        - libdbus-1-3
+        - libexpat1
+        - libfontconfig1
+        - libgcc1
+        - libgconf-2-4
+        - libgdk-pixbuf2.0-0
+        - libglib2.0-0
+        - libgtk-3-0
+        - libnspr4
+        - libpango-1.0-0
+        - libpangocairo-1.0-0
+        - libstdc++6
+        - libx11-6
+        - libx11-xcb1
+        - libxcb1
+        - libxcomposite1
+        - libxcursor1
+        - libxdamage1
+        - libxext6
+        - libxfixes3
+        - libxi6
+        - libxrandr2
+        - libxrender1
+        - libxss1
+        - libxtst6
+        - ca-certificates
+        - fonts-liberation
+        - libappindicator1
+        - libnss3
+        - lsb-release
+        - xdg-utils
+        - wget
+        - libgbm-dev
+
+
+    - name: Install ghosts
+      become: false
+      ansible.builtin.copy:
+        src: cmu-ghosts/ghosts-client-linux-v8.0.0.zip
+        dest: /home/ubuntu/ghosts-client-linux-v8.0.0.zip
+
+    - name: unzip ghosts
+      become: false
+      ansible.builtin.unarchive:
+        src: /home/ubuntu/ghosts-client-linux-v8.0.0.zip
+        dest: /home/ubuntu/
+        remote_src: yes
+
+    - name: Upload application configuration
+      become: false
+      ansible.builtin.copy:
+        src: cmu-ghosts/application.json
+        dest: /home/ubuntu/ghosts-client-linux-v8.0.0/config/application.json
+
+    - name: Upload timeline configuration
+      become: false
+      ansible.builtin.copy:
+        src: cmu-ghosts/timeline.json
+        dest: /home/ubuntu/ghosts-client-linux-v8.0.0/config/timeline.json
+
+    # Extra traffic: ssh and nmap
+
+    - name: Install packages
+      ansible.builtin.apt:
+        update_cache: yes
+        name:
+        - nmap
+
+    - name: Copy ssh credentials
+      become: false
+      ansible.builtin.copy:
+        src: cmu-ghosts/ssh_credentials.json
+        dest: /home/ubuntu/ghosts-client-linux-v8.0.0/config/ssh_credentials.json
+
+    # End extra traffic
+
+    - name: Upload cmu-ghosts service
+      ansible.builtin.copy:
+        src: cmu-ghosts/cmu-ghosts.service
+        dest: /etc/systemd/system/cmu-ghosts.service
+
+    - name: Start and enable cmu-ghosts
+      systemd:
+        name: cmu-ghosts
+        state: started
+        enabled: yes
+
+- name: Configure CMU Ghosts on Windows
+  hosts: win
+  gather_facts: false
+  tasks:
+    - name: Make sure the directory exists
+      win_file:
+        path: C:\Ghost
+        state: directory
+
+    - name: Download file from CMU Box # Note we don't copy it over since ansible is slow copying on windows
+      win_get_url:
+        url: https://cmu.box.com/shared/static/kqo5cl7f5f2v22xgud6o2fd26xrrwtpq.zip
+        dest: C:\Ghost\ghosts.zip
+        validate_certs: no
+
+    - name: Download latest chromedriver
+      win_get_url:
+        url: https://storage.googleapis.com/chrome-for-testing-public/129.0.6668.70/win64/chromedriver-win64.zip
+        dest: C:\Ghost\chromedriver.zip
+        validate_certs: no
+
+    - name: Download service wrapper
+      win_get_url:
+        url: https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe
+        dest: C:\Ghost\service.exe
+        validate_certs: no
+
+    - name: Unzip the ghosts file
+      win_unzip:
+        src: C:\Ghost\ghosts.zip
+        dest: C:\Ghost\extracted_files
+        creates: C:\Ghost\extracted_files
+
+    - name: Unzip chromedriver
+      win_unzip:
+        src: C:\Ghost\chromedriver.zip
+        dest: C:\Ghost\chromedriver
+        creates: C:\Ghost\chromedriver
+
+    - name: Overwrite the chromedriver
+      win_copy:
+        src: C:\Ghost\chromedriver\chromedriver-win64\chromedriver.exe
+        dest: C:\Ghost\extracted_files\ghosts-client-x64-v8.0.0\chromedriver.exe
+        force: yes
+        remote_src: yes
+
+    - name: Upload application configuration
+      ansible.builtin.copy:
+        src: windows-ghosts/application.json
+        dest: C:\Ghost\extracted_files\ghosts-client-x64-v8.0.0\config\application.json
+
+    - name: Upload timeline configuration
+      ansible.builtin.copy:
+        src: windows-ghosts/timeline.json
+        dest: C:\Ghost\extracted_files\ghosts-client-x64-v8.0.0\config\timeline.json
+
+    - name: Upload service file
+      # ansible.builtin.copy:
+        # src: windows-ghosts/service.xml
+        # dest: C:\Ghost\service.xml
+      ansible.builtin.template:
+        src: files/windows-ghosts/service.xml
+        dest: C:\Ghost\service.xml
+
+    - name: Change ownership of the Ghosts folder to non-admin user
+      win_acl:
+        path: C:\Ghost
+        user: user
+        rights: FullControl
+        state: present
+        type: allow
+
+    - name: Install service & start
+      ansible.windows.win_shell: |
+        Try {
+            .\service.exe install
+        }
+        Catch {
+            echo "Service already installed"
+        }
+        $serviceName = "CMUGhosts"
+        $username = ".\user"
+        $password = "{{ansible_password|  replace('$', '`$')}}"
+
+        $service = Get-WmiObject -Class Win32_Service -Filter "Name='$serviceName'"
+
+        $service.Change($null, $null, $null, $null, $null, $null, $username, $password, $null, $null, $null)
+
+        $service.StartService()
+      args:
+        executable: powershell
+        chdir: C:\Ghost
+      register: ghosts_process
+
+    # - name: echo the output
+    #   debug:
+    #     var: ghosts_process
