@@ -1,0 +1,7 @@
+<service>
+    <id>cmughosts</id>
+    <name>CMU Ghosts</name>
+    <description>Running CMU Ghosts to simulate user activity</description>
+    <executable>C:\Ghost\extracted_files\ghosts-client-x64-v8.0.0\ghosts.exe</executable>
+    <log mode="roll"></log>
+</service>

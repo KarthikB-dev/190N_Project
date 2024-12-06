@@ -9,14 +9,16 @@
 
     - name: prepare results
       ansible.builtin.shell: |
-        mv -f ~/tcp.pcap /home/ubuntu
-        chown ubuntu:ubuntu /home/ubuntu/tcp.pcap
+        mv -f ~/wan.pcap /home/ubuntu
+        mv -f ~/lan.pcap /home/ubuntu
+        chown ubuntu:ubuntu /home/ubuntu/*.pcap
       ignore_errors: yes
 
     - name: download tcpdump
       become: false
       shell: |
-        scp -F ./190n-inf-key/ssh_config router:/home/ubuntu/tcp.pcap "./tcp.pcap"
+        scp -F ./190n-inf-key/ssh_config router:/home/ubuntu/wan.pcap "./wan.pcap"
+        scp -F ./190n-inf-key/ssh_config router:/home/ubuntu/lan.pcap "./lan.pcap"
       args:
         chdir: "{{ playbook_dir }}/.."
       delegate_to: localhost

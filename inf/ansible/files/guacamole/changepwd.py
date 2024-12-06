@@ -14,7 +14,6 @@ def getToken(password):
     token = response.json()["authToken"]
     return token
 
-token = getToken()
 
 def changePwd(old,new):
     url = BASE_URL + "/api/session/data/mysql/users/guacadmin/password?token=" + token
@@ -31,3 +30,6 @@ def changePwd(old,new):
 
 old_password = sys.argv[1]
 new_password = sys.argv[2]
+
+token = getToken(old_password)
+changePwd(old_password,new_password)
