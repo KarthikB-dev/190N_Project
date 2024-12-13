@@ -1,0 +1,12 @@
+[Unit]
+Description=CMU Ghosts Service
+After=network.target
+
+[Service]
+ExecStart=/home/ubuntu/ghosts-client-linux-v8.0.0/ghosts.client.linux
+WorkingDirectory=/home/ubuntu/ghosts-client-linux-v8.0.0
+Restart=always
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target

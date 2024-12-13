@@ -1,0 +1,71 @@
+- name: Install Docker
+  hosts: router
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+
+- name: Install guacamole
+  hosts: router
+  gather_facts: true
+  become: true
+  vars:
+    pk: "{{ lookup('file', playbook_dir + '/../190n-inf-key/id_ed25519') }}"
+  tasks:
+    - name: Upload guacamole files
+      ansible.builtin.copy:
+        src: guacamole/
+        dest: /opt/guacamole/
+    - name: Chmod guacamole files
+      ansible.builtin.shell: |
+        chmod +x /opt/guacamole/*.sh
+
+    - name: Start service with docker-compose
+      command: "bash ./init.sh"
+      args:
+        chdir: /opt/guacamole
+
+    - name: Add all windows hosts
+      ansible.builtin.shell: |
+        python3 /opt/guacamole/addhosts.py rdp "{{hostvars[item]['ansible_host']}}" '{{hostvars[item]['ansible_password']}}'
+      with_items: "{{ groups['win'] }}"
+
+    - name: Add all linux hosts
+      ansible.builtin.shell: |
+        python3 /opt/guacamole/addhosts.py ssh "{{hostvars[item]['ansible_host']}}" "{{pk}}"
+      with_items: "{{ groups['linux'] }}"
+
+    - name: Change password for guacamole
+      ansible.builtin.shell: |
+        python3 /opt/guacamole/changepwd.py "guacadmin" "uc5b-c5igon"

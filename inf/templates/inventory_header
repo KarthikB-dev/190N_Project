@@ -1,0 +1,3 @@
+[all:vars]
+ansible_ssh_common_args="-F ./190n-inf-key/ssh_config"
+public_ip="${ip}"

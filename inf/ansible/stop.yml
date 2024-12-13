@@ -1,0 +1,25 @@
+- name: Stop experiment on router and download files
+  hosts: router
+  become: true
+  tasks:
+    - name: stop services
+      ansible.builtin.shell: |
+        killall tcpdump || true
+      ignore_errors: yes
+
+    - name: prepare results
+      ansible.builtin.shell: |
+        mv -f ~/wan.pcap /home/ubuntu
+        mv -f ~/lan.pcap /home/ubuntu
+        chown ubuntu:ubuntu /home/ubuntu/*.pcap
+      ignore_errors: yes
+
+    - name: download tcpdump
+      become: false
+      shell: |
+        scp -F ./190n-inf-key/ssh_config router:/home/ubuntu/wan.pcap "./wan.pcap"
+        scp -F ./190n-inf-key/ssh_config router:/home/ubuntu/lan.pcap "./lan.pcap"
+      args:
+        chdir: "{{ playbook_dir }}/.."
+      delegate_to: localhost
+      ignore_errors: yes

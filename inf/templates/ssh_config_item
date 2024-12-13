@@ -1,0 +1,4 @@
+Host ${host} ${ip}
+    HostName ${ip}
+    IdentityFile ./${keyfile}
+    ProxyJump ${bastion}

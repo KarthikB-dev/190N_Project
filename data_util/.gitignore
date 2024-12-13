@@ -1,0 +1,4 @@
+*.pcap
+__pycache__
+*.csv
+*.log

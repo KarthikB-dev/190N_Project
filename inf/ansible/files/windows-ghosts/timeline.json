@@ -1,0 +1,57 @@
+{
+    "Status": "Run",
+    "TimeLineHandlers": [
+      {
+        "HandlerType": "BrowserChrome",
+        "HandlerArgs": {
+          "isheadless": "false",
+          "blockimages": "false",
+          "blockstyles": "false",
+          "blockflash": "false",
+          "blockscripts": "false",
+          "stickiness": "65",
+          "stickiness-depth-min": "3",
+          "stickiness-depth-max": "15",
+          "incognito": "false",
+          "javascript-enable": "true",
+          "visited-remember": "10",
+          "actions-before-restart": 100,
+          "command-line-args": [ ],
+          "url-replace": [
+            { "so1": ["1","2","3","4","5","6","7","8","9","0"] },
+            { "so2": ["1","2","3","4","5","6","7","8","9","0"] },
+            { "so3": ["1","2","3","4","5","6","7","8","9","0"] }
+          ]
+        },
+        "Initial": "about:blank",
+        "UtcTimeOn": "00:00:00",
+        "UtcTimeOff": "24:00:00",
+        "UtcTimeBlocks": [ "00:00:00", "23:59:00" ],
+        "Loop": "True",
+        "TimeLineEvents": [
+          {
+            "Command": "random",
+            "CommandArgs": [
+              "https://stackoverflow.com/questions/1289{so1}{so2}{so3}",
+              "https://www.reddit.com/r/Ubuntu/",
+              "https://www.instagram.com/ucsbcomputerscience/",
+              "https://www.nsf.gov/",
+              "https://ictf.cs.ucsb.edu/",
+              "https://www.ucsb.edu/",
+              "https://status.ucsb.edu",
+              "http://webfonts.brand.ucsb.edu",
+              "https://cse.cs.ucsb.edu",
+              "https://github.com",
+              "https://github.com/cmu-sei/GHOSTS/tree/master/src/Ghosts.Client/Sample%20Timelines"
+            ],
+            "DelayAfter": {
+              "random": true,
+              "min": 1000,
+              "max": 60000
+            },
+            "DelayBefore": 0
+          }
+        ]
+      }
+    ]
+  }
