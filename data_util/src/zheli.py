@@ -121,6 +121,8 @@ def parse_rec(pkt):
         # On WAN side, these won't match internal NAT IPs.
         # On LAN side, they should.
         internal_host = map_to_internal_host(ip_features['src_ip'], nat_mapping) if ip_features['src_ip'] else 'unknown'
+        if internal_host == 'unknown':
+            internal_host = map_to_internal_host(ip_features['dst_ip'], nat_mapping) if ip_features['dst_ip'] else 'unknown'
 
         record = {}
         record.update(ip_features)
@@ -143,6 +145,8 @@ def parse_rec_dry(pkt):
         # On WAN side, these won't match internal NAT IPs.
         # On LAN side, they should.
         internal_host = map_to_internal_host(ip_features['src_ip'], nat_mapping) if ip_features['src_ip'] else 'unknown'
+        if internal_host == 'unknown':
+            internal_host = map_to_internal_host(ip_features['dst_ip'], nat_mapping) if ip_features['dst_ip'] else 'unknown'
 
         record = {}
         record.update(ip_features)

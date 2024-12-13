@@ -111,7 +111,7 @@ def cap(input_pcap):
             with notifier.get_lock():
                 if notifier.value == THREADS:
                     break
-            print(f"Waiting for {THREADS - notifier.value} processes to finish... Output recorded: {len(output_list)}, Queue size: {output_queue.qsize()}")
+            # print(f"Waiting for {THREADS - notifier.value} processes to finish... Output recorded: {len(output_list)}, Queue size: {output_queue.qsize()}")
             while output_queue.qsize() > 1000:
                 if(len(output_list) % 100 == 0):
                     print(f"Output recorded: {len(output_list)}, Queue size: {output_queue.qsize()}, Recorded Percentage: {len(output_list) / count * 100:.2f}%, Queue Percentage: {output_queue.qsize() / count * 100:.2f}%", end='\r')
