@@ -11,10 +11,21 @@ def get_protocol_name(proto):
     return "Unknown"
 
 
+def parse_http_data(tcp_data):
+    return False, False
+    try:
+        return dpkt.http.Request(tcp_data), "http_request"
+    except dpkt.UnpackError:
+        try:
+            return dpkt.http.Response(tcp_data), "http_response"
+        except dpkt.UnpackError:
+            return False, False
+
+
 def read_next_packet_helper(iterable):
     ts, pkt = next(iterable)
     eth = dpkt.ethernet.Ethernet(pkt)  # Get the Ethernet frame
-
+    
     if (
         eth.type != dpkt.ethernet.ETH_TYPE_IP
         and eth.type != dpkt.ethernet.ETH_TYPE_8021Q
@@ -28,6 +39,10 @@ def read_next_packet_helper(iterable):
         return None
 
     ip: dpkt.ip.IP = eth.data  # Get the IP packet
+    
+    http, type = parse_http_data(ip.data.data)
+
+    http = make_dict(http) if http is not False else None
 
     packet = {
         "timestamp": ts,
@@ -52,6 +67,10 @@ def read_next_packet_helper(iterable):
             "flags": ip.data.flags if hasattr(ip.data, "flags") else None,
             "window": ip.data.win if hasattr(ip.data, "win") else None,
             "data_length": len(ip.data.data),
+        },
+        "application": {
+            "data": http,
+            "type": type,
         },
     }
     return packet

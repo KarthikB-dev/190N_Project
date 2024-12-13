@@ -7,16 +7,9 @@ from utils import read_next_packet
 
 ## Now this thingy only works for Layer 3
 
-wanData = "eth0_2024-11-09_07-12-27"
+wanData = "wan"
 lanData = [
-    "eth1_2024-11-09_07-12-27",
-    "eth2_2024-11-09_07-12-27",
-    "eth3_2024-11-09_07-12-27",
-    "eth3.1921_2024-11-09_07-12-27",
-    "VLAN10_2024-11-09_07-12-27",
-    "VLAN20_2024-11-09_07-12-27",
-    "VLAN30_2024-11-09_07-12-27",
-    "VLAN100_2024-11-09_07-12-27",
+    "lan",
 ]
 
 output = "output.csv"
@@ -108,6 +101,11 @@ def match_packets_in_buffers():
                 break
     wan_buffer = [wan_buffer[i] for i in range(len(wan_buffer)) if i not in remove_wan]
     lan_buffer = [lan_buffer[i] for i in range(len(lan_buffer)) if i not in remove_lan]
+    # Cleanup unmatched packets
+    if len(wan_buffer) > 1000:
+        wan_buffer = wan_buffer[-1000:]
+    if len(lan_buffer) > 1000:
+        lan_buffer = lan_buffer[-1000:]
     return matched_packets
 
 
@@ -122,7 +120,7 @@ def match(to_ts):
         wt = wan["transport"]
         label = ln["src_ip"] if ln["src_ip"].startswith("10.") else ln["dst_ip"]
         output_file.write(
-            f"{wan["timestamp"]},{label},{wn["src_ip"]},{wt["src_port"]},{wn["dst_ip"]},{wt["dst_port"]},{wn["ttl"]},{wn["tos"]},{wn["id"]},{wn["sum"]},{wt["protocol"]},{wt["seq"]},{wt["ack"]},{wt["flags"]},{wt["window"]},{wt["data_length"]}\n"
+            f"{wan['application']['type']},{wan["timestamp"]},{label},{wn["src_ip"]},{wt["src_port"]},{wn["dst_ip"]},{wt["dst_port"]},{wn["ttl"]},{wn["tos"]},{wn["id"]},{wn["sum"]},{wt["protocol"]},{wt["seq"]},{wt["ack"]},{wt["flags"]},{wt["window"]},{wt["data_length"]}\n"
         )
 
 
@@ -131,7 +129,7 @@ def main():
     wan_buffer.append(wan_init)
     time = int(wan_init["timestamp"]) + 1
     match(time)
-    for i in range(100):
+    for i in range(200):
         time += 1
         match(time)
     print("UNMATCHED WAN BUFFER")
