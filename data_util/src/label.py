@@ -120,7 +120,7 @@ def match(to_ts):
         wt = wan["transport"]
         label = ln["src_ip"] if ln["src_ip"].startswith("10.") else ln["dst_ip"]
         output_file.write(
-            f"{wan['application']['type']},{wan["timestamp"]},{label},{wn["src_ip"]},{wt["src_port"]},{wn["dst_ip"]},{wt["dst_port"]},{wn["ttl"]},{wn["tos"]},{wn["id"]},{wn["sum"]},{wt["protocol"]},{wt["seq"]},{wt["ack"]},{wt["flags"]},{wt["window"]},{wt["data_length"]}\n"
+            f"{wan["timestamp"]},{label},{wn["src_ip"]},{wt["src_port"]},{wn["dst_ip"]},{wt["dst_port"]},{wn["ttl"]},{wn["tos"]},{wn["id"]},{wn["sum"]},{wt["protocol"]},{wt["seq"]},{wt["ack"]},{wt["flags"]},{wt["window"]},{wt["data_length"]}\n"
         )
 
 
