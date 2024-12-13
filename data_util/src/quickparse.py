@@ -1,7 +1,8 @@
 import pyshark
 import multiprocessing
 import time
-from zheli import parse_rec, records
+from zheli import parse_rec, records, parse_rec_dry
+import pandas as pd
 
 from multiprocessing import Process, Value
 
@@ -30,7 +31,7 @@ class QuickParse:
         cap = pyshark.InMemCapture()
         while True:
             # if output queue is full, wait
-            while self.output_queue.qsize() > 50000:
+            while self.output_queue.qsize() > 500000:
                 time.sleep(0.1)
             # Exec
             packet = self.process_queue.get()
@@ -39,7 +40,8 @@ class QuickParse:
                 break
             try:
                 res = cap.parse_packets([packet])[0]
-                self.output_queue.put(res)
+                packed = parse_rec_dry(res)
+                self.output_queue.put(packed)
             except Exception as e:
                 print(f"Error parsing packet in process {self.id}: {e}")
                 continue
@@ -59,9 +61,8 @@ class QuickParse:
             print(f"Process {self.id} joined successfully.")
 
 
-def cap():
-    input_pcap = "../data/wan.pcap"
-    THREADS = 8
+def cap(input_pcap):
+    THREADS = 16
     with open(input_pcap, "rb") as file:
         magic_number = file.read(4)
         major_version = file.read(2)
@@ -112,15 +113,19 @@ def cap():
                     break
             print(f"Waiting for {THREADS - notifier.value} processes to finish... Output recorded: {len(output_list)}, Queue size: {output_queue.qsize()}")
             while output_queue.qsize() > 1000:
-                if(len(records) % 1000 == 0):
-                    print(f"Output recorded: {len(records)}, Queue size: {output_queue.qsize()}, Recorded Percentage: {len(records) / count * 100}%, Queue Percentage: {output_queue.qsize() / count * 100}%", end='\r')
-                parse_rec(output_queue.get())
-
+                if(len(output_list) % 100 == 0):
+                    print(f"Output recorded: {len(output_list)}, Queue size: {output_queue.qsize()}, Recorded Percentage: {len(output_list) / count * 100:.2f}%, Queue Percentage: {output_queue.qsize() / count * 100:.2f}%", end='\r')
+                output_list.append(output_queue.get())
+                
         return output_list
 
+def save(l, output_csv):
+    df = pd.DataFrame(l)
+    df.to_csv(output_csv, index=False)
+    print(f"Extraction complete. Features saved to {output_csv}.")
 
 if __name__ == "__main__":
-    parsed = cap()
+    input_pcap = "../data/lan.pcap"
+    parsed = cap(input_pcap)
     print("PARSE OK", len(parsed))
-    if parsed:
-        print(parsed[0])
+    save(parsed, "../data/more_output_lan.csv")

@@ -176,6 +176,7 @@ def parse_rec_dry(pkt):
 
 # cap.close()
 
-# df = pd.DataFrame(records)
-# df.to_csv(output_csv, index=False)
-# print(f"Extraction complete. Features saved to {output_csv}.")
+def save():
+    df = pd.DataFrame(records)
+    df.to_csv(output_csv, index=False)
+    print(f"Extraction complete. Features saved to {output_csv}.")
