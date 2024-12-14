@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     # Create sequences grouped by timestamp or a meaningful identifier (e.g., session-based)
     # Assuming data is sorted by timestamp; otherwise, sort first
-    sequence_length = 1000  # Max length of each sequence
+    sequence_length = 10000  # Max length of each sequence
     sequences = []
     labels = []
 
@@ -61,9 +61,9 @@ if __name__ == "__main__":
     # Build an LSTM model
     model = Sequential(
         [
-            # LSTM(64, input_shape=(sequence_length, len(features))),
-            LSTM(128, return_sequences=True, input_shape=(sequence_length, len(features)), dropout=0.2, recurrent_dropout=0.2),
-            LSTM(64),
+            LSTM(64, input_shape=(sequence_length, len(features))),
+            # LSTM(128, return_sequences=True, input_shape=(sequence_length, len(features)), dropout=0.2, recurrent_dropout=0.2),
+            # LSTM(64),
             Dense(32, activation="relu"),
             Dense(1),
         ]
