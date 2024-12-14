@@ -11,7 +11,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 from tf import features, label_column, categorical_columns
 
 # Load CSV file
-csv_file = "../data_util/data/aws_output.csv"  # Replace with your file path
+csv_file = "../data_util/data/output_aws_12.csv"  # Replace with your file path
 df = pd.read_csv(csv_file)
 
 label_encoders = {col: LabelEncoder() for col in categorical_columns}
@@ -30,7 +30,7 @@ sequence_length = 10000  # Max length of each sequence
 sequences = []
 labels = []
 
-for i in range(10):  # Group by a session identifier, e.g., 'src_ip'
+for i in range(100):  # Group by a session identifier, e.g., 'src_ip'
     group = df.sample(n=10000)
     group_sequences = group[features].values
     group_labels = len(group[label_column].unique())

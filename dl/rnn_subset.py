@@ -12,13 +12,14 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 # Select relevant features
 label_column = "label"
 features = ["protocol", "flags", "src_ip", "src_port", "dst_ip", "dst_port", "ttl", "tos", "id", "seq", "ack", "flags", "window"]
-# features = ["protocol", "flags", "src_ip", "src_port", "dst_ip", "dst_port"]
 categorical_columns = [label_column, "protocol", "flags", "src_ip", "dst_ip"]
 
 if __name__ == "__main__":
     # Load CSV file
-    csv_file = "../data_util/data/output_aws_12_1.csv"  # Replace with your file path
+    csv_file = "../data_util/data/output_aws_12_1_subset.csv"  # Replace with your file path
     df = pd.read_csv(csv_file)
+    
+    print("\n\n\n\nFinished Loading DF\n\n\n\n")
     
     # Encode categorical columns (e.g., `protocol`, `flags`) using LabelEncoder
     label_encoders = {col: LabelEncoder() for col in categorical_columns}
@@ -36,18 +37,13 @@ if __name__ == "__main__":
     sequence_length = 10000  # Max length of each sequence
     sequences = []
     labels = []
-    num_groups = 10000
 
-    for i in range(num_groups):  # Group by a session identifier, e.g., 'src_ip'
-        print("Sampling group", i, f" - {i/num_groups*100:.2f}%", end="\r")
-        group = df.sample(n=10000)
+    for _, group in df.groupby('session'):  # Group by a session identifier, e.g., 'src_ip'
         group_sequences = group[features].values
-        group_labels = len(group[label_column].unique())
+        group_labels = group[label_column].values[0]
 
         sequences.append(group_sequences)
         labels.append(group_labels)
-    
-    print("data labels",labels)
 
     # print(len(sequences), len(labels))
     # print(sequences[0], labels[0])
@@ -81,7 +77,7 @@ if __name__ == "__main__":
 
 
     # Train the model
-    model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=10, batch_size=32, callbacks=[checkpoint])
+    model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=130, batch_size=32, callbacks=[checkpoint])
 
     # Evaluate the model
     loss, MSE = model.evaluate(X_test, y_test)
@@ -90,7 +86,7 @@ if __name__ == "__main__":
     model.save('nat_count_rnn.keras')
     ## Okay moment of truth
     # Predict on a new sequence
-    test_data = df.sample(n=10000)
+    test_data = df[df['session'] == 8]
     new_sequence = test_data[features].values  # Example new sequence
     padded_sequence = pad_sequences([new_sequence], maxlen=sequence_length, padding="post")
     prediction = model.predict(padded_sequence)
