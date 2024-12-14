@@ -12,3 +12,8 @@ all the hosts in some network. NAT was devised to address the IPv4 address short
 # How Was Data Collected?
 
 `tcpdump` was run on OpenWRT devices deployed at various locations, chief among them WAN ports. This data consisted of packet headers, timestamps, etc. This data was collected using a Shell script deployed to these devices.
+
+# Parts of this project
+- `inf` folder contains the terraform and ansible files for a blueprint of our AWS network that we used for data collection. Please refer to the [README](inf/README.md) of it for detailed usage.
+- `data_util` folder contains the tools that we used for data process before they can be used by machine learning models. Please refer to the [README](data_util/README.md) of it for detailed usage.
+- `dl` folder contains the model-related file, including the model itself and tools for training and prediction. Please refer to the [README](dl/README.md) of it for detailed usage.
