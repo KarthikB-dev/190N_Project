@@ -26,12 +26,12 @@ print(df.head())
 
 # Create sequences grouped by timestamp or a meaningful identifier (e.g., session-based)
 # Assuming data is sorted by timestamp; otherwise, sort first
-sequence_length = 10000  # Max length of each sequence
+sequence_length = 1000  # Max length of each sequence
 sequences = []
 labels = []
 
 for i in range(100):  # Group by a session identifier, e.g., 'src_ip'
-    group = df.sample(n=10000)
+    group = df.sample(n=1000)
     group_sequences = group[features].values
     group_labels = len(group[label_column].unique())
 
@@ -56,7 +56,7 @@ model = keras.models.load_model('nat_count_rnn.keras')
 loss, MSE = model.evaluate(X_test, y_test)
 print(f"Test Loss: {loss}, Test MSE: {MSE}")
 
-test_data = df.sample(n=10000)
+test_data = df.sample(n=1000)
 new_sequence = test_data[features].values  # Example new sequence
 padded_sequence = pad_sequences([new_sequence], maxlen=sequence_length, padding="post")
 prediction = model.predict(padded_sequence)

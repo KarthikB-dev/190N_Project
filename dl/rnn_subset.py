@@ -11,12 +11,12 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 
 # Select relevant features
 label_column = "label"
-features = ["protocol", "flags", "src_ip", "src_port", "dst_ip", "dst_port", "ttl", "tos", "id", "seq", "ack", "flags", "window"]
+features = ["protocol", "flags", "src_port", "dst_port", "ttl", "tos", "id", "seq", "ack", "flags", "window", "src_ip", "dst_ip"]
 categorical_columns = [label_column, "protocol", "flags", "src_ip", "dst_ip"]
 
 if __name__ == "__main__":
     # Load CSV file
-    csv_file = "../data_util/data/output_aws_12_1_subset.csv"  # Replace with your file path
+    csv_file = "../data_util/data/output_aws_12_1_subset_b.csv"  # Replace with your file path
     df = pd.read_csv(csv_file)
     
     print("\n\n\n\nFinished Loading DF\n\n\n\n")
@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     # Create sequences grouped by timestamp or a meaningful identifier (e.g., session-based)
     # Assuming data is sorted by timestamp; otherwise, sort first
-    sequence_length = 10000  # Max length of each sequence
+    sequence_length = 1000  # Max length of each sequence
     sequences = []
     labels = []
 
@@ -61,7 +61,9 @@ if __name__ == "__main__":
     # Build an LSTM model
     model = Sequential(
         [
-            LSTM(64, input_shape=(sequence_length, len(features))),
+            # LSTM(64, input_shape=(sequence_length, len(features))),
+            LSTM(128, return_sequences=True, input_shape=(sequence_length, len(features)), dropout=0.2, recurrent_dropout=0.2),
+            LSTM(64),
             Dense(32, activation="relu"),
             Dense(1),
         ]
@@ -77,7 +79,7 @@ if __name__ == "__main__":
 
 
     # Train the model
-    model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=130, batch_size=32, callbacks=[checkpoint])
+    model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=30, batch_size=32, callbacks=[checkpoint])
 
     # Evaluate the model
     loss, MSE = model.evaluate(X_test, y_test)
