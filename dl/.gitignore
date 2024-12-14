@@ -1,0 +1,4 @@
+checkpoints
+*.csv
+__pycache__
+*.keras

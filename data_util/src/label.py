@@ -7,19 +7,12 @@ from utils import read_next_packet
 
 ## Now this thingy only works for Layer 3
 
-wanData = "eth0_2024-11-09_07-12-27"
+wanData = "wan_aws_12_2"
 lanData = [
-    "eth1_2024-11-09_07-12-27",
-    "eth2_2024-11-09_07-12-27",
-    "eth3_2024-11-09_07-12-27",
-    "eth3.1921_2024-11-09_07-12-27",
-    "VLAN10_2024-11-09_07-12-27",
-    "VLAN20_2024-11-09_07-12-27",
-    "VLAN30_2024-11-09_07-12-27",
-    "VLAN100_2024-11-09_07-12-27",
+    "lan_aws_12_2",
 ]
 
-output = "output.csv"
+output = "output_aws_12_2.csv"
 
 # Open WAN interface pcap file
 wan_pcap_stream = open(f"../data/{wanData}.pcap", "rb")
@@ -108,6 +101,11 @@ def match_packets_in_buffers():
                 break
     wan_buffer = [wan_buffer[i] for i in range(len(wan_buffer)) if i not in remove_wan]
     lan_buffer = [lan_buffer[i] for i in range(len(lan_buffer)) if i not in remove_lan]
+    # Cleanup unmatched packets
+    if len(wan_buffer) > 1000:
+        wan_buffer = wan_buffer[-1000:]
+    if len(lan_buffer) > 1000:
+        lan_buffer = lan_buffer[-1000:]
     return matched_packets
 
 
@@ -131,7 +129,7 @@ def main():
     wan_buffer.append(wan_init)
     time = int(wan_init["timestamp"]) + 1
     match(time)
-    for i in range(100):
+    for i in range(500):
         time += 1
         match(time)
     print("UNMATCHED WAN BUFFER")
