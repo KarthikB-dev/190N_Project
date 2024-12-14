@@ -2,7 +2,7 @@ import pandas as pd
 from itertools import combinations
 
 
-INPUT = "../data/output.csv"
+INPUT = "../data/output_aws_12_1.csv"
 df = pd.read_csv(INPUT)
 
 # Get all the unique labels
@@ -39,5 +39,5 @@ for i in range(1, len(labels) + 1):
         subset_labels(df, c)
 
 df = pd.concat(dfs, ignore_index=True)
-OUTPUT = f"../data/output_subset.csv"
+OUTPUT = f"../data/output_aws_12_1_subset.csv"
 df.to_csv(OUTPUT, index=False)
