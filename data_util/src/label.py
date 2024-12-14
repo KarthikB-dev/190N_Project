@@ -7,12 +7,12 @@ from utils import read_next_packet
 
 ## Now this thingy only works for Layer 3
 
-wanData = "wan"
+wanData = "wan_aws_12_2"
 lanData = [
-    "lan",
+    "lan_aws_12_2",
 ]
 
-output = "output.csv"
+output = "output_aws_12_2.csv"
 
 # Open WAN interface pcap file
 wan_pcap_stream = open(f"../data/{wanData}.pcap", "rb")
@@ -129,7 +129,7 @@ def main():
     wan_buffer.append(wan_init)
     time = int(wan_init["timestamp"]) + 1
     match(time)
-    for i in range(200):
+    for i in range(500):
         time += 1
         match(time)
     print("UNMATCHED WAN BUFFER")
